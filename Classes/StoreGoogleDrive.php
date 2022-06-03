@@ -68,7 +68,7 @@ class StoreGoogleDrive
                     if ($file['mimetype'] == 'application/vnd.google-apps.folder') {
                         //busca archivos en carpeta
                         $listFolder = $this->listFolder($file['id']);
-                        $result['children'][] = ['id'=> $file['id'],'name'=>$file['name'],'extension'=>$file['extension'],'children'=>$this->listTreeFolder($file['id'])['children']];
+                        $result['children'][] = ['id'=> $file['id'],'name'=>$file['name'],'extension'=>$file['extension'],'parent'=>$file['parent'],'children'=>$this->listTreeFolder($file['id'])['children']];
                     } else {
                         $result['children'][] = $file;
                     }
@@ -113,7 +113,8 @@ class StoreGoogleDrive
 
                         $this->moveAllFolderTree($listFolderNew, $folderIdNew['id']);
                     } else {
-                        $this->moveFileToFolder($folderId, $file['id'], $x = substr($file['name'], 0, strrpos($file['name'], '.')));
+                        $filename = strrpos($file['name'], '.') !== false ? substr($file['name'], 0, strrpos($file['name'], '.')) : $file['name'];
+                        $this->moveFileToFolder($folderId, $file['id'], $filename);
                     }
                 }
             }
@@ -134,11 +135,12 @@ class StoreGoogleDrive
 
             #copiar archivo
             $copiedFile = new Google_Service_Drive_DriveFile(array(
-                'parents' => array($folderId)
+                'parents' => array($folderId),
+                'name' => $newFilename
             ));
 
             $newFile = $service->files->copy($fileId, $copiedFile);
-
+            $newFile->setName($newFilename);
             return true;
         } catch (Exception $e) {
             return $e->getMessage();
